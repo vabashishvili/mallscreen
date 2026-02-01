@@ -3,22 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Molscreen Seamless</title>
+    <title>Molscreen Pro</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; cursor: none; }
-        #container { position: relative; width: 100vw; height: 100vh; }
-        video { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            object-fit: cover; opacity: 0; transition: opacity 0.5s ease-in-out; 
-        }
-        .active { opacity: 1; z-index: 10; }
+        video { width: 100vw; height: 100vh; object-fit: cover; position: absolute; top: 0; left: 0; }
     </style>
 </head>
 <body>
-    <div id="container">
-        <video id="p1" muted playsinline></video>
-        <video id="p2" muted playsinline></video>
-    </div>
+
+<video id="player" autoplay muted playsinline></video>
 
 <script>
     const playlist = [
@@ -31,51 +24,40 @@
         "https://www.dropbox.com/scl/fi/mbmod4obbvmuyiofc77ml/velosipedebi.mp4?rlkey=8gnk7u7w1hrzsvrd7z42n0dzk&st=4xjy6085&raw=1"
     ];
 
-    let currentIdx = 0;
-    const players = [document.getElementById('p1'), document.getElementById('p2')];
-    let activePlayerIdx = 0;
+    const player = document.getElementById('player');
+    let currentIndex = 0;
 
-    function loadVideo(player, url) {
-        player.src = url;
-        player.load();
+    // ფუნქცია, რომელიც ამზადებს შემდეგ ვიდეოს მეხსიერებაში
+    function preloadNext() {
+        const nextIdx = (currentIndex + 1) % playlist.length;
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'video';
+        link.href = playlist[nextIdx];
+        document.head.appendChild(link);
     }
 
-    async function switchPlayer() {
-        const currentPlayer = players[activePlayerIdx];
-        const nextPlayerIdx = 1 - activePlayerIdx;
-        const nextPlayer = players[nextPlayerIdx];
-
-        // შემდეგი ვიდეოს ინდექსი
-        currentIdx = (currentIdx + 1) % playlist.length;
-        
-        // ვრთავთ შემდეგს
-        nextPlayer.play().then(() => {
-            nextPlayer.classList.add('active');
-            currentPlayer.classList.remove('active');
-            activePlayerIdx = nextPlayerIdx;
-
-            // ვამზადებთ შემდეგი გადართვისთვის წინა პლეიერს
-            setTimeout(() => {
-                const futureIdx = (currentIdx + 1) % playlist.length;
-                loadVideo(currentPlayer, playlist[futureIdx]);
-            }, 1000);
+    function playNext() {
+        player.src = playlist[currentIndex];
+        player.play().then(() => {
+            preloadNext(); // სანამ ეს უკრავს, შემდეგს "ვქაჩავთ"
+        }).catch(err => {
+            console.log("Retry...", err);
+            setTimeout(playNext, 1000);
         });
+        
+        currentIndex = (currentIndex + 1) % playlist.length;
     }
 
-    // ინიციალიზაცია
-    players[0].onended = switchPlayer;
-    players[1].onended = switchPlayer;
+    player.onended = playNext;
 
-    // პირველი ჩატვირთვა
-    loadVideo(players[0], playlist[0]);
-    loadVideo(players[1], playlist[1]);
+    // პირველი გაშვება
+    playNext();
 
-    players[0].oncanplaythrough = () => {
-        if (!players[0].classList.contains('active') && currentIdx === 0) {
-            players[0].classList.add('active');
-            players[0].play();
-        }
-    };
+    // Service Worker-ის რეგისტრაცია ოფლაინ მუშაობისთვის
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+    }
 </script>
 </body>
 </html>
