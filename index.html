@@ -62,19 +62,14 @@
             try {
                 const cache = await caches.open(CACHE_NAME);
                 const cachedResponse = await cache.match(url);
-                
                 if (cachedResponse) {
                     const blob = await cachedResponse.blob();
                     return URL.createObjectURL(blob);
                 }
-                
                 fetch(url).then(res => {
                     if (res.ok) cache.put(url, res);
                 }).catch(() => {});
-                
-            } catch (e) {
-                console.error("Cache error", e);
-            }
+            } catch (e) { console.error("Cache error", e); }
             return url;
         }
 
@@ -120,7 +115,6 @@
             await setupVideo(videos[0], 0, true);
             videos[0].play();
             setupVideo(videos[1], 1);
-            
             videos[0].onended = swapVideos;
             videos[1].onended = swapVideos;
         }
