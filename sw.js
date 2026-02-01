@@ -1,16 +1,25 @@
-const CACHE_NAME = 'molscreen-v3'; // ვერსია შევცვალეთ v3-ზე, რომ ბრაუზერმა განახლება დააფიქსიროს
+const CACHE_NAME = 'molscreen-seamless-v1';
+
+// ფაილები, რომლებიც აუცილებლად უნდა დაქეშდეს
+const urlsToCache = [
+  './index.html'
+];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // აიძულებს ახალ ვერსიას მაშინვე გააქტიურდეს
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+  );
 });
 
 self.addEventListener('activate', (event) => {
+  // ძველი ქეშების წაშლა, რომ წარწერები ან ძველი შეცდომები არ დარჩეს
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            return caches.delete(cache); // ძველი ქეშის წაშლა (რომ წარწერა გაქრეს)
+            return caches.delete(cache);
           }
         })
       );
@@ -19,13 +28,16 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // ვიდეოების და საიტის ქეშირების ლოგიკა
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // თუ ქეშში გვაქვს - ვაბრუნებთ ქეშიდან, თუ არა - ვიწერთ ინტერნეტიდან
-      return response || fetch(event.request).then((fetchRes) => {
+      if (response) {
+        return response; // თუ ქეშშია, მომენტალურად ვაძლევთ
+      }
+      return fetch(event.request).then((fetchRes) => {
         return caches.open(CACHE_NAME).then((cache) => {
-          // ვინახავთ მხოლოდ index.html-ს და Dropbox-ის ვიდეოებს
-          if (event.request.url.includes('dropbox') || event.request.url.includes('index.html') || event.request.url.includes('github.io')) {
+          // ვიწერთ Dropbox-ის ვიდეოებს მომავალი ოფლაინ მუშაობისთვის
+          if (event.request.url.includes('dropbox') || event.request.url.includes('index.html')) {
             cache.put(event.request, fetchRes.clone());
           }
           return fetchRes;
