@@ -2,8 +2,7 @@
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Molscreen Simple</title>
+    <title>Molscreen TV</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
         video { width: 100vw; height: 100vh; object-fit: cover; }
@@ -11,7 +10,7 @@
 </head>
 <body>
 
-<video id="mainPlayer" autoplay muted playsinline></video>
+<video id="tvPlayer" autoplay muted playsinline></video>
 
 <script>
     const playlist = [
@@ -24,40 +23,31 @@
         "https://www.dropbox.com/scl/fi/mbmod4obbvmuyiofc77ml/velosipedebi.mp4?rlkey=8gnk7u7w1hrzsvrd7z42n0dzk&st=4xjy6085&raw=1"
     ];
 
-    const player = document.getElementById('mainPlayer');
-    let currentIndex = 0;
+    // ვიგებთ რომელი ვიდეო უნდა ჩაირთოს URL-იდან (მაგ: ?v=0, ?v=1...)
+    const urlParams = new URLSearchParams(window.location.search);
+    let vIndex = parseInt(urlParams.get('v')) || 0;
 
-    function playNext() {
-        if (currentIndex >= playlist.length) {
-            currentIndex = 0;
-        }
+    if (vIndex >= playlist.length) vIndex = 0;
+
+    const player = document.getElementById('tvPlayer');
+    player.src = playlist[vIndex];
+
+    player.onended = function() {
+        // ვიდეოს დასრულებისას გვერდი თავად გადადის შემდეგ ვიდეოზე
+        let nextIndex = vIndex + 1;
+        if (nextIndex >= playlist.length) nextIndex = 0;
         
-        console.log("Playing:", playlist[currentIndex]);
-        player.src = playlist[currentIndex];
-        
-        player.play().catch(error => {
-            console.error("Error playing video, skipping...", error);
-            currentIndex++;
-            playNext();
-        });
-
-        currentIndex++;
-    }
-
-    // როცა ვიდეო დამთავრდება
-    player.onended = () => {
-        playNext();
+        window.location.href = window.location.pathname + "?v=" + nextIndex;
     };
 
-    // პირველი გაშვება
-    playNext();
-
-    // Service Worker-ის სრული წაშლა (რომ ძველმა კოდმა ხელი არ შეგვიშალოს)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-            for(let reg of regs) reg.unregister();
-        });
-    }
+    // თუ ვიდეომ გაჭედა (Error), 5 წამში მაინც გადავიდეს შემდეგზე
+    player.onerror = function() {
+        setTimeout(() => {
+            let nextIndex = vIndex + 1;
+            if (nextIndex >= playlist.length) nextIndex = 0;
+            window.location.href = window.location.pathname + "?v=" + nextIndex;
+        }, 5000);
+    };
 </script>
 </body>
 </html>
