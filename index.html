@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Molscreen Player - Offline Ready</title>
+    <title>Molscreen Player</title>
     <style>
         body, html {
             margin: 0;
@@ -28,49 +28,11 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: opacity 0.6s ease-in-out;
+            transition: opacity 0.8s ease-in-out;
         }
 
         .hidden { opacity: 0; z-index: 1; }
         .visible { opacity: 1; z-index: 2; }
-
-        #status-overlay {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 8px;
-            color: #fff;
-            font-family: sans-serif;
-            font-size: 13px;
-            z-index: 100;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #fff;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            display: inline-block;
-            animation: rotation 1s linear infinite;
-        }
-
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .ready {
-            color: #4CAF50;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -80,59 +42,21 @@
         <video id="video2" class="hidden" muted playsinline></video>
     </div>
 
-    <div id="status-overlay">
-        <span id="sync-icon" class="spinner"></span>
-        <span id="status-text">ინიციალიზაცია...</span>
-    </div>
-
     <script>
         const playlist = [
-            "https://www.dropbox.com/scl/fi/v2bx6rptchmopoyj2wg84/.mp4?rlkey=a8d5xdh97r1k0b5y1p06mmvkr&st=zzu8cfyl&raw=1",
-            "https://www.dropbox.com/scl/fi/p3jnpcnq5zq0i00y423lj/.mp4?rlkey=c87u2tmn8amluocftqtn792cl&st=nedpyc82&raw=1"
+            "https://www.dropbox.com/scl/fi/cgq2z7linqasvqezbm8ab/gochits.mp4?rlkey=274k4goiciju5otq7qizctanh&st=u2qj0hb9&raw=1",
+            "https://www.dropbox.com/scl/fi/b5h43u2gtqa9tb7mcvxg0/goge.mp4?rlkey=1zcjj2h6t7wvp3xz4kplnednr&st=ad2g4vla&raw=1",
+            "https://www.dropbox.com/scl/fi/e2taoclzs6h5d09bi6vh2/kfc.mp4?rlkey=ti378vkzzqshy98i4xg7e2z13&st=xo7uj41y&raw=1",
+            "https://www.dropbox.com/scl/fi/fjlmicsw8e3wocrnwvobh/mallscreen_promo.mp4?rlkey=7toe1bduhyx9ly42h7qbj1u23&st=fo8by9by&raw=1",
+            "https://www.dropbox.com/scl/fi/k4pkuv2rqtzviddjnv5an/marge.mp4?rlkey=6a0d94c1shuqp9usqwggjxeim&st=by7r8osn&raw=1",
+            "https://www.dropbox.com/scl/fi/7whs9yqdaiq0o4mvlarhb/satamashoebi.mp4?rlkey=dgqeekoyj8etov8on6k8vrxoy&st=i3z5izrb&raw=1",
+            "https://www.dropbox.com/scl/fi/mbmod4obbvmuyiofc77ml/velosipedebi.mp4?rlkey=8gnk7u7w1hrzsvrd7z42n0dzk&st=4xjy6085&raw=1"
         ];
 
         let currentIndex = 0;
         const videos = [document.getElementById('video1'), document.getElementById('video2')];
         let activeVideoIndex = 0;
         const CACHE_NAME = 'molscreen-v2';
-
-        const statusText = document.getElementById('status-text');
-        const syncIcon = document.getElementById('sync-icon');
-        const statusOverlay = document.getElementById('status-overlay');
-
-        function updateStatus(msg, isReady = false) {
-            statusText.innerText = msg;
-            if (isReady) {
-                syncIcon.style.display = 'none';
-                statusText.classList.add('ready');
-                setTimeout(() => {
-                    statusOverlay.style.opacity = '0';
-                    statusOverlay.style.transition = 'opacity 2s';
-                }, 5000);
-            } else {
-                syncIcon.style.display = 'inline-block';
-                statusOverlay.style.opacity = '1';
-                statusText.classList.remove('ready');
-            }
-        }
-
-        async function checkOfflineReadiness() {
-            try {
-                const cache = await caches.open(CACHE_NAME);
-                const keys = await cache.keys();
-                const cachedUrls = keys.map(request => request.url);
-                
-                const allCached = playlist.every(url => {
-                    const normalizedUrl = new URL(url, window.location.href).href;
-                    return cachedUrls.includes(normalizedUrl);
-                });
-
-                
-                }
-            } catch (e) {
-                console.log("Readiness check error", e);
-            }
-        }
 
         async function getBestSource(url) {
             try {
@@ -145,10 +69,7 @@
                 }
                 
                 fetch(url).then(res => {
-                    if (res.ok) {
-                        cache.put(url, res);
-                        checkOfflineReadiness();
-                    }
+                    if (res.ok) cache.put(url, res);
                 }).catch(() => {});
                 
             } catch (e) {
@@ -196,23 +117,18 @@
         }
 
         async function initPlayer() {
-            
             await setupVideo(videos[0], 0, true);
             videos[0].play();
             setupVideo(videos[1], 1);
+            
             videos[0].onended = swapVideos;
             videos[1].onended = swapVideos;
-            setTimeout(checkOfflineReadiness, 3000);
         }
 
         window.onload = initPlayer;
 
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('SW Registered'))
-                .catch(err => console.log('SW Registration failed', err));
-            });
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
         }
     </script>
 </body>
