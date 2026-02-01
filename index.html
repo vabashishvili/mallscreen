@@ -2,15 +2,23 @@
 <html lang="ka">
 <head>
     <meta charset="UTF-8">
-    <title>Molscreen TV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molscreen Seamless</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        video { width: 100vw; height: 100vh; object-fit: cover; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; cursor: none; }
+        #container { position: relative; width: 100vw; height: 100vh; }
+        video { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            object-fit: cover; opacity: 0; transition: opacity 0.5s ease-in-out; 
+        }
+        .active { opacity: 1; z-index: 10; }
     </style>
 </head>
 <body>
-
-<video id="tvPlayer" autoplay muted playsinline></video>
+    <div id="container">
+        <video id="p1" muted playsinline></video>
+        <video id="p2" muted playsinline></video>
+    </div>
 
 <script>
     const playlist = [
@@ -23,30 +31,50 @@
         "https://www.dropbox.com/scl/fi/mbmod4obbvmuyiofc77ml/velosipedebi.mp4?rlkey=8gnk7u7w1hrzsvrd7z42n0dzk&st=4xjy6085&raw=1"
     ];
 
-    // ვიგებთ რომელი ვიდეო უნდა ჩაირთოს URL-იდან (მაგ: ?v=0, ?v=1...)
-    const urlParams = new URLSearchParams(window.location.search);
-    let vIndex = parseInt(urlParams.get('v')) || 0;
+    let currentIdx = 0;
+    const players = [document.getElementById('p1'), document.getElementById('p2')];
+    let activePlayerIdx = 0;
 
-    if (vIndex >= playlist.length) vIndex = 0;
+    function loadVideo(player, url) {
+        player.src = url;
+        player.load();
+    }
 
-    const player = document.getElementById('tvPlayer');
-    player.src = playlist[vIndex];
+    async function switchPlayer() {
+        const currentPlayer = players[activePlayerIdx];
+        const nextPlayerIdx = 1 - activePlayerIdx;
+        const nextPlayer = players[nextPlayerIdx];
 
-    player.onended = function() {
-        // ვიდეოს დასრულებისას გვერდი თავად გადადის შემდეგ ვიდეოზე
-        let nextIndex = vIndex + 1;
-        if (nextIndex >= playlist.length) nextIndex = 0;
+        // შემდეგი ვიდეოს ინდექსი
+        currentIdx = (currentIdx + 1) % playlist.length;
         
-        window.location.href = window.location.pathname + "?v=" + nextIndex;
-    };
+        // ვრთავთ შემდეგს
+        nextPlayer.play().then(() => {
+            nextPlayer.classList.add('active');
+            currentPlayer.classList.remove('active');
+            activePlayerIdx = nextPlayerIdx;
 
-    // თუ ვიდეომ გაჭედა (Error), 5 წამში მაინც გადავიდეს შემდეგზე
-    player.onerror = function() {
-        setTimeout(() => {
-            let nextIndex = vIndex + 1;
-            if (nextIndex >= playlist.length) nextIndex = 0;
-            window.location.href = window.location.pathname + "?v=" + nextIndex;
-        }, 5000);
+            // ვამზადებთ შემდეგი გადართვისთვის წინა პლეიერს
+            setTimeout(() => {
+                const futureIdx = (currentIdx + 1) % playlist.length;
+                loadVideo(currentPlayer, playlist[futureIdx]);
+            }, 1000);
+        });
+    }
+
+    // ინიციალიზაცია
+    players[0].onended = switchPlayer;
+    players[1].onended = switchPlayer;
+
+    // პირველი ჩატვირთვა
+    loadVideo(players[0], playlist[0]);
+    loadVideo(players[1], playlist[1]);
+
+    players[0].oncanplaythrough = () => {
+        if (!players[0].classList.contains('active') && currentIdx === 0) {
+            players[0].classList.add('active');
+            players[0].play();
+        }
     };
 </script>
 </body>
