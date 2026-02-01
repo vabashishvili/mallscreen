@@ -127,10 +127,7 @@
                     return cachedUrls.includes(normalizedUrl);
                 });
 
-                if (allCached) {
-                    updateStatus("სისტემა მზადაა Offline რეჟიმისთვის ✅", true);
-                } else {
-                    updateStatus("ვიდეოები იწერება მეხსიერებაში...");
+                
                 }
             } catch (e) {
                 console.log("Readiness check error", e);
@@ -199,7 +196,7 @@
         }
 
         async function initPlayer() {
-            updateStatus("სისტემა იწყებს მუშაობას...");
+            
             await setupVideo(videos[0], 0, true);
             videos[0].play();
             setupVideo(videos[1], 1);
